@@ -532,6 +532,12 @@
     <LibraryClasses>
       NULL|IntelFrameworkModulePkg/Library/LzmaCustomDecompressLib/LzmaCustomDecompressLib.inf
       DevicePathLib|MdePkg/Library/UefiDevicePathLib/UefiDevicePathLib.inf
+!if $(SMM_REQUIRE) == FALSE
+      #
+      # Let the Constructor of LockBoxDxeLib to install LockBox protocol.
+      #
+      NULL|OvmfPkg/Library/LockBoxLib/LockBoxDxeLib.inf
+!endif
   }
 
   IntelFrameworkModulePkg/Universal/StatusCode/RuntimeDxe/StatusCodeRuntimeDxe.inf
