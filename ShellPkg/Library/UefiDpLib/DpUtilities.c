@@ -17,7 +17,6 @@
 #include <Library/MemoryAllocationLib.h>
 #include <Library/DebugLib.h>
 #include <Library/UefiBootServicesTableLib.h>
-#include <Library/TimerLib.h>
 #include <Library/PeCoffGetEntryPointLib.h>
 #include <Library/PrintLib.h>
 #include <Library/HiiLib.h>
