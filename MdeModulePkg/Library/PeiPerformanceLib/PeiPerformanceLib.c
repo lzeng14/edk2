@@ -53,6 +53,9 @@ InternalGetPerformanceHobLog (
   EFI_HOB_GUID_TYPE           *GuidHob;
   UINTN                       PeiPerformanceSize;
   UINT16                      PeiPerformanceLogEntries;
+  UINT64                      Freq;
+  UINT64                      StartValue;
+  UINT64                      EndValue;
 
   ASSERT (PeiPerformanceLog != NULL);
   ASSERT (PeiPerformanceIdArray != NULL);
@@ -79,6 +82,12 @@ InternalGetPerformanceHobLog (
                              sizeof (PEI_PERFORMANCE_LOG_ENTRY) * PeiPerformanceLogEntries;
     *PeiPerformanceLog     = BuildGuidHob (&gPerformanceProtocolGuid, PeiPerformanceSize);
     *PeiPerformanceLog     = ZeroMem (*PeiPerformanceLog, PeiPerformanceSize);
+
+    (*PeiPerformanceLog)->Revision = PEI_PERFORMANCE_LOG_REVISION;
+    Freq = GetPerformanceCounterProperties (&StartValue, &EndValue);
+    (*PeiPerformanceLog)->CpuFreq = Freq;
+    (*PeiPerformanceLog)->TimerStartValue = StartValue;
+    (*PeiPerformanceLog)->TimerEndValue = EndValue;
 
     PeiPerformanceSize     = sizeof (UINT32) * PeiPerformanceLogEntries;
     *PeiPerformanceIdArray = BuildGuidHob (&gPerformanceExProtocolGuid, PeiPerformanceSize);
