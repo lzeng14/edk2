@@ -97,7 +97,6 @@
 
   ShellPkg/Library/UefiDpLib/UefiDpLib.inf {
     <LibraryClasses>
-      TimerLib|MdePkg/Library/BaseTimerLibNullTemplate/BaseTimerLibNullTemplate.inf
       PerformanceLib|MdePkg/Library/BasePerformanceLibNull/BasePerformanceLibNull.inf
       DxeServicesLib|MdePkg/Library/DxeServicesLib/DxeServicesLib.inf
   }
