@@ -56,7 +56,6 @@
   MemoryAllocationLib
   DebugLib
   UefiBootServicesTableLib
-  TimerLib
   PeCoffGetEntryPointLib
   PerformanceLib
   PrintLib
@@ -66,6 +65,9 @@
   PcdLib
   DevicePathLib
   DxeServicesLib
+
+[Guids]
+  gPerformanceProtocolGuid                                ## CONSUMES ## SystemTable
 
 [Protocols]
   gEfiLoadedImageProtocolGuid                             ## CONSUMES

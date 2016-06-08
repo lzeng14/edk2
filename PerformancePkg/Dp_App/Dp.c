@@ -30,7 +30,6 @@
 #include <Library/BaseLib.h>
 #include <Library/MemoryAllocationLib.h>
 #include <Library/DebugLib.h>
-#include <Library/TimerLib.h>
 #include <Library/UefiLib.h>
 #include <Library/UefiHiiServicesLib.h>
 #include <Library/HiiLib.h>
@@ -201,14 +200,13 @@ InitializeDp (
   IN EFI_SYSTEM_TABLE         *SystemTable
   )
 {
-  UINT64                    Freq;
-  UINT64                    Ticker;
-  UINT32                    ListIndex;
-  
-  LIST_ENTRY                *ParamPackage;
-  CONST CHAR16              *CmdLineArg;
-  EFI_STRING                StringPtr;
-  UINTN                     Number2Display;
+  PERFORMANCE_PROPERTY          *PerformanceProperty;
+  UINT32                        ListIndex;
+
+  LIST_ENTRY                    *ParamPackage;
+  CONST CHAR16                  *CmdLineArg;
+  EFI_STRING                    StringPtr;
+  UINTN                         Number2Display;
 
   EFI_STATUS                    Status;
   BOOLEAN                       SummaryMode;
@@ -265,11 +263,6 @@ InitializeDp (
   StringDpOptionLi = NULL;
   StringDpOptionLc = NULL;
   StringPtr        = NULL;
-
-  // Get DP's entry time as soon as possible.
-  // This is used as the Shell-Phase end time.
-  //
-  Ticker  = GetPerformanceCounter ();
 
   //
   // Retrieve HII package list from ImageHandle
@@ -404,10 +397,16 @@ InitializeDp (
       //    StartCount = Value loaded into the counter when it starts counting
       //      EndCount = Value counter counts to before it needs to be reset
       //
-      Freq = GetPerformanceCounterProperties (&TimerInfo.StartCount, &TimerInfo.EndCount);
+      Status = EfiGetSystemConfigurationTable (&gPerformanceProtocolGuid, &PerformanceProperty);
+      if (EFI_ERROR (Status)) {
+        PrintToken (STRING_TOKEN (STR_PERF_PROPERTY_NOT_FOUND));
+        goto Done;
+      }
 
       // Convert the Frequency from Hz to KHz
-      TimerInfo.Frequency = (UINT32)DivU64x32 (Freq, 1000);
+      TimerInfo.Frequency = (UINT32)DivU64x32 (PerformanceProperty->CpuFreq, 1000);
+      TimerInfo.StartCount = PerformanceProperty->TimerStartValue;
+      TimerInfo.EndCount = PerformanceProperty->TimerEndValue;
 
       // Determine in which direction the performance counter counts.
       TimerInfo.CountUp = (BOOLEAN) (TimerInfo.EndCount >= TimerInfo.StartCount);
@@ -485,7 +484,7 @@ InitializeDp (
       else {
         //------------- Begin Cooked Mode Processing
         if (TraceMode) {
-          ProcessPhases ( Ticker );
+          ProcessPhases ();
           if ( ! SummaryMode) {
             Status = ProcessHandles ( ExcludeMode);
             if (Status == EFI_ABORTED) {
