@@ -61,6 +61,8 @@ PERFORMANCE_EX_PROTOCOL mPerformanceExInterface = {
   GetGaugeEx
   };
 
+PERFORMANCE_PROPERTY mPerformanceProperty;
+
 /**
   Searches in the gauge array with keyword Handle, Token, Module and Identifier.
 
@@ -502,6 +504,10 @@ DxeCorePerformanceLibConstructor (
   )
 {
   EFI_STATUS                Status;
+  UINT64                    Freq;
+  UINT64                    StartValue;
+  UINT64                    EndValue;
+  PERFORMANCE_PROPERTY      *PerformanceProperty;
 
   if (!PerformanceMeasurementEnabled ()) {
     //
@@ -531,7 +537,23 @@ DxeCorePerformanceLibConstructor (
 
   InternalGetPeiPerformance ();
 
-  return Status;
+  Status = EfiGetSystemConfigurationTable (&gPerformanceProtocolGuid, &PerformanceProperty);
+  if (EFI_ERROR (Status)) {
+    PerformanceProperty = &mPerformanceProperty;
+    //
+    // Install configuration table for performance property.
+    //
+    PerformanceProperty->Revision = PERFORMANCE_PROPERTY_REVISION;
+    PerformanceProperty->Reserved = 0;
+    Freq = GetPerformanceCounterProperties (&StartValue, &EndValue);
+    PerformanceProperty->CpuFreq = Freq;
+    PerformanceProperty->TimerStartValue = StartValue;
+    PerformanceProperty->TimerEndValue = EndValue;
+    Status = gBS->InstallConfigurationTable (&gPerformanceProtocolGuid, PerformanceProperty);
+    ASSERT_EFI_ERROR (Status);
+  }
+
+  return EFI_SUCCESS;
 }
 
 /**

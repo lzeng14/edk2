@@ -69,6 +69,8 @@ PERFORMANCE_EX_PROTOCOL mPerformanceExInterface = {
   GetGaugeEx
 };
 
+PERFORMANCE_PROPERTY mPerformanceProperty;
+
 /**
   Searches in the gauge array with keyword Handle, Token, Module and Identfier.
 
@@ -687,6 +689,10 @@ InitializeSmmCorePerformanceLib (
 {
   EFI_STATUS                Status;
   EFI_HANDLE                Handle;
+  UINT64                    Freq;
+  UINT64                    StartValue;
+  UINT64                    EndValue;
+  PERFORMANCE_PROPERTY      *PerformanceProperty;
 
   //
   // Initialize spin lock
@@ -725,6 +731,22 @@ InitializeSmmCorePerformanceLib (
   ASSERT_EFI_ERROR (Status);
   Status = gSmst->SmiHandlerRegister (SmmPerformanceHandlerEx, &gSmmPerformanceExProtocolGuid, &Handle);
   ASSERT_EFI_ERROR (Status);
+
+  Status = EfiGetSystemConfigurationTable (&gPerformanceProtocolGuid, &PerformanceProperty);
+  if (EFI_ERROR (Status)) {
+    PerformanceProperty = &mPerformanceProperty;
+    //
+    // Install configuration table for performance property.
+    //
+    PerformanceProperty->Revision = PERFORMANCE_PROPERTY_REVISION;
+    PerformanceProperty->Reserved = 0;
+    Freq = GetPerformanceCounterProperties (&StartValue, &EndValue);
+    PerformanceProperty->CpuFreq = Freq;
+    PerformanceProperty->TimerStartValue = StartValue;
+    PerformanceProperty->TimerEndValue = EndValue;
+    Status = gBS->InstallConfigurationTable (&gPerformanceProtocolGuid, PerformanceProperty);
+    ASSERT_EFI_ERROR (Status);
+  }
 }
 
 /**
