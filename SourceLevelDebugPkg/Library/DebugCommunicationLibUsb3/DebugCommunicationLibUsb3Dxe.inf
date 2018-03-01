@@ -63,6 +63,9 @@
    ## SOMETIMES_CONSUMES
   gEfiPciIoProtocolGuid
   gEdkiiIoMmuProtocolGuid               ## SOMETIMES_CONSUMES
+   ## NOTIFY
+   ## SOMETIMES_CONSUMES
+  gEfiDxeSmmReadyToLockProtocolGuid
 
 [LibraryClasses]
   BaseLib

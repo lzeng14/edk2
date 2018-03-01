@@ -106,7 +106,7 @@ IoMmuAllocateBuffer (
 
   Status = IoMmu->AllocateBuffer (
                     IoMmu,
-                    EfiBootServicesData,
+                    EfiRuntimeServicesData,
                     Pages,
                     HostAddress,
                     0
