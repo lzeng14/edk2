@@ -41,7 +41,7 @@
 
 [Ppis]
   gEfiPeiMemoryDiscoveredPpiGuid                ## CONSUMES
-  gEdkiiIoMmuPpiGuid                            ## CONSUMES
+  gEdkiiIoMmuPpiGuid                            ## SOMETIMES_CONSUMES
 
 [Pcd]
   # The memory BAR of ehci host controller, in which usb debug feature is enabled.
