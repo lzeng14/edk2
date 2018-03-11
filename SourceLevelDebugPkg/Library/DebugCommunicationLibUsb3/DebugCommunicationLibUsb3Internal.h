@@ -472,11 +472,6 @@ typedef struct _USB3_DEBUG_PORT_INSTANCE {
   BOOLEAN                                 FromHob;
 
   //
-  // IOMMU PPI Notify registered
-  //
-  BOOLEAN                                 PpiNotifyRegistered;
-
-  //
   // Prevent notification being interrupted by debug timer
   //
   BOOLEAN                                 InNotify;
@@ -728,14 +723,12 @@ InitializeUsbDebugHardware (
   );
 
 /**
-  Discover and initialize usb debug port.
+  Return USB3 debug instance address pointer.
 
-  @param Handle                  Debug port handle.
-
-**/
-VOID
-DiscoverInitializeUsbDebugPort (
-  IN USB3_DEBUG_PORT_HANDLE     *Handle
+**/  
+EFI_PHYSICAL_ADDRESS *
+GetUsb3DebugPortInstanceAddrPtr (
+  VOID
   );
 
 /**

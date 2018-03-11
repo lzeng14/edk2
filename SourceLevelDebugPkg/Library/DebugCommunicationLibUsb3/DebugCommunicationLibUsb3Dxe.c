@@ -23,7 +23,9 @@
 
 GUID                        gUsb3DbgGuid =  USB3_DBG_GUID;
 
-USB3_DEBUG_PORT_HANDLE      *mUsb3Instance = NULL;
+USB3_DEBUG_PORT_HANDLE      mUsb3Instance = {USB3DBG_UNINITIALIZED};
+EFI_PHYSICAL_ADDRESS        mUsb3InstanceAddr = 0;
+EFI_PHYSICAL_ADDRESS        *mUsb3InstanceAddrPtr = NULL;
 EFI_PCI_IO_PROTOCOL         *mUsb3PciIo = NULL;
 
 /**
@@ -184,14 +186,18 @@ Usb3MapDmaBuffers (
 VOID
 EFIAPI
 Usb3DxeSmmReadyToLockNotify (
-  IN  EFI_EVENT                 Event,
-  IN  VOID                      *Context
+  IN EFI_EVENT                  Event,
+  IN VOID                       *Context
   )
 {
-  ASSERT (mUsb3Instance != NULL);
+  USB3_DEBUG_PORT_HANDLE        *Instance;
 
   DEBUG ((DEBUG_INFO, "%a()\n", __FUNCTION__));
-  mUsb3Instance->InNotify = TRUE;
+
+  Instance = GetUsb3DebugPortInstance ();
+  ASSERT (Instance != NULL);
+
+  Instance->InNotify = TRUE;
 
   //
   // For the case that the USB3 debug port instance and DMA buffers are
@@ -199,14 +205,14 @@ Usb3DxeSmmReadyToLockNotify (
   // Reinitialize USB3 debug port with granted DXE DMA buffer accessible
   // by SMM environment.
   //
-  InitializeUsbDebugHardware (mUsb3Instance);
+  InitializeUsbDebugHardware (Instance);
 
   //
   // Wait some time for host to be ready after re-initialization.
   //
   MicroSecondDelay (1000000);
 
-  mUsb3Instance->InNotify = FALSE;
+  Instance->InNotify = FALSE;
   gBS->CloseEvent (Event);
 }
 
@@ -262,6 +268,8 @@ Usb3PciIoNotify (
   UINTN                         PciDeviceNumber;
   UINTN                         PciFunctionNumber;
   UINT32                        PciAddress;
+  USB3_DEBUG_PORT_HANDLE        *Instance;
+  EFI_EVENT                     SmmReadyToLockEvent;
 
   Status = gBS->LocateHandleBuffer (
                   ByProtocol,
@@ -287,24 +295,27 @@ Usb3PciIoNotify (
         //
         // Found the PciIo for USB3 debug port.
         //
-        ASSERT (mUsb3Instance != NULL);
         DEBUG ((DEBUG_INFO, "%a()\n", __FUNCTION__));
         if (Usb3GetIoMmu != NULL) {
-          mUsb3Instance->InNotify = TRUE;
-          Usb3MapDmaBuffers (mUsb3Instance, PciIo);
-          mUsb3Instance->InNotify = FALSE;
+          Instance = GetUsb3DebugPortInstance ();
+          ASSERT (Instance != NULL);
+          if (Instance->Ready) {
+            Instance->InNotify = TRUE;
+            Usb3MapDmaBuffers (Instance, PciIo);
+            Instance->InNotify = FALSE;
 
-          if (mUsb3Instance->FromHob) {
-            mUsb3PciIo = PciIo;
-            Usb3NamedEventListen (
-              &gEfiDxeSmmReadyToLockProtocolGuid,
-              TPL_NOTIFY,
-              Usb3DxeSmmReadyToLockNotify,
-              &Event
-              );
+            if (Instance->FromHob) {
+              mUsb3PciIo = PciIo;
+              Usb3NamedEventListen (
+                &gEfiDxeSmmReadyToLockProtocolGuid,
+                TPL_NOTIFY,
+                Usb3DxeSmmReadyToLockNotify,
+                &SmmReadyToLockEvent
+                );
+            }
           }
         }
-        gBS->CloseEvent ((EFI_EVENT) (UINTN) mUsb3Instance->PciIoEvent);
+        gBS->CloseEvent (Event);
         break;
       }
     }
@@ -314,34 +325,22 @@ Usb3PciIoNotify (
 }
 
 /**
-  Return USB3 debug instance address.
+  Return USB3 debug instance address pointer.
 
 **/  
-USB3_DEBUG_PORT_HANDLE *
-GetUsb3DebugPortInstance (
+EFI_PHYSICAL_ADDRESS *
+GetUsb3DebugPortInstanceAddrPtr (
   VOID
   )
 {
-  USB3_DEBUG_PORT_HANDLE          *Instance;
-  EFI_PEI_HOB_POINTERS            Hob;
-
-  Instance = NULL;
-
-  if (mUsb3Instance != NULL) {
-    Instance = mUsb3Instance;
-    goto Done;
+  if (mUsb3InstanceAddrPtr == NULL) {
+    //
+    // Use the local variables temporarily.
+    //
+    mUsb3InstanceAddr = (EFI_PHYSICAL_ADDRESS) (UINTN) &mUsb3Instance;
+    mUsb3InstanceAddrPtr = &mUsb3InstanceAddr;
   }
-
-  Hob.Raw = GetFirstGuidHob (&gUsb3DbgGuid);
-  if (Hob.Raw != NULL) {
-    Instance = GET_GUID_HOB_DATA (Hob.Guid);
-  }
-
-Done:
-  if ((Instance != NULL) && (!Instance->InNotify)) {
-    DiscoverInitializeUsbDebugPort (Instance);
-  }
-  return Instance;
+  return mUsb3InstanceAddrPtr;
 }
 
 /**
@@ -447,59 +446,50 @@ DebugCommunicationUsb3DxeConstructor (
   IN EFI_SYSTEM_TABLE  *SystemTable
   )
 {
-  USB3_DEBUG_PORT_HANDLE        UsbDbg;
+  EFI_PHYSICAL_ADDRESS          *AddrPtr;
   USB3_DEBUG_PORT_HANDLE        *Instance;
   EFI_PHYSICAL_ADDRESS          Address;
   EFI_STATUS                    Status;
   EFI_EVENT                     Event;
 
+  Status = EfiGetSystemConfigurationTable (&gUsb3DbgGuid, (VOID **) &AddrPtr);
+  if (EFI_ERROR (Status)) {
+    //
+    // Instead of using local variables, install system configuration table for
+    // the local instance and the buffer to save instance address pointer.
+    //
+    Address = SIZE_4GB;
+    Status = gBS->AllocatePages (
+                    AllocateMaxAddress,
+                    EfiACPIMemoryNVS,
+                    EFI_SIZE_TO_PAGES (sizeof (EFI_PHYSICAL_ADDRESS) + sizeof (USB3_DEBUG_PORT_HANDLE)),
+                    &Address
+                    );
+    if (EFI_ERROR (Status)) {
+      return Status;
+    }
+
+    AddrPtr = (EFI_PHYSICAL_ADDRESS *) (UINTN) Address;
+    ZeroMem (AddrPtr, sizeof (EFI_PHYSICAL_ADDRESS) + sizeof (USB3_DEBUG_PORT_HANDLE));
+    Instance = (USB3_DEBUG_PORT_HANDLE *) (AddrPtr + 1);
+    CopyMem (Instance, &mUsb3Instance, sizeof (USB3_DEBUG_PORT_HANDLE));
+    *AddrPtr = (EFI_PHYSICAL_ADDRESS) (UINTN) Instance;
+
+    Status = gBS->InstallConfigurationTable (&gUsb3DbgGuid, AddrPtr);
+    if (EFI_ERROR (Status)) {
+      return Status;
+    }
+  }
+
+  if (mUsb3InstanceAddrPtr != NULL) {
+    *AddrPtr = *mUsb3InstanceAddrPtr;
+  }
+  mUsb3InstanceAddrPtr = AddrPtr;
+
   Instance = GetUsb3DebugPortInstance ();
+  ASSERT (Instance != NULL);
 
-  Status = EfiGetSystemConfigurationTable (&gUsb3DbgGuid, (VOID **) &mUsb3Instance);
-  if (!EFI_ERROR (Status)) {
-    goto Done;
-  }
-
-  if (Instance == NULL) {
-    //
-    // Initialize USB debug
-    //
-    ZeroMem (&UsbDbg, sizeof (UsbDbg));
-    UsbDbg.Initialized = USB3DBG_UNINITIALIZED;
-
-    DiscoverInitializeUsbDebugPort (&UsbDbg);
-
-    Instance = &UsbDbg;
-  }
-
-  //
-  // It is first time to run DXE instance, copy Instance from Hob to ACPINvs.
-  //
-  Address = SIZE_4GB;
-  Status = gBS->AllocatePages (
-                  AllocateMaxAddress,
-                  EfiACPIMemoryNVS,
-                  EFI_SIZE_TO_PAGES (sizeof (USB3_DEBUG_PORT_HANDLE)),
-                  &Address
-                  );
-  if (EFI_ERROR (Status)) {
-    return Status;
-  }
-
-  CopyMem (
-    (VOID *)(UINTN)Address,
-    Instance,
-    sizeof (USB3_DEBUG_PORT_HANDLE)
-    );
-  mUsb3Instance = (USB3_DEBUG_PORT_HANDLE *)(UINTN)Address;
-
-  Status = gBS->InstallConfigurationTable (&gUsb3DbgGuid, mUsb3Instance);
-  if (EFI_ERROR (Status)) {
-    return Status;
-  }
-
-Done:
-  if ((mUsb3Instance != NULL) && mUsb3Instance->Ready && (mUsb3Instance->PciIoEvent == 0)) {
+  if (Instance->PciIoEvent == 0) {
     Status = Usb3NamedEventListen (
                &gEfiPciIoProtocolGuid,
                TPL_NOTIFY,
@@ -507,7 +497,7 @@ Done:
                &Event
                );
     if (!EFI_ERROR (Status)) {
-      mUsb3Instance->PciIoEvent = (EFI_PHYSICAL_ADDRESS) (UINTN) Event;
+      Instance->PciIoEvent = (EFI_PHYSICAL_ADDRESS) (UINTN) Event;
     }
   }
 
@@ -530,12 +520,17 @@ DebugCommunicationUsb3DxeDestructor (
   IN EFI_SYSTEM_TABLE  *SystemTable
   )
 {
-  if ((mUsb3Instance != NULL) && (mUsb3Instance->PciIoEvent != 0)) {
+  USB3_DEBUG_PORT_HANDLE        *Instance;
+
+  Instance = GetUsb3DebugPortInstance ();
+  ASSERT (Instance != NULL);
+
+  if (Instance->PciIoEvent != 0) {
     //
     // Close the event created.
     //
-    gBS->CloseEvent ((EFI_EVENT) (UINTN) mUsb3Instance->PciIoEvent);
-    mUsb3Instance->PciIoEvent = 0;
+    gBS->CloseEvent ((EFI_EVENT) (UINTN) Instance->PciIoEvent);
+    Instance->PciIoEvent = 0;
   }
   return EFI_SUCCESS;
 }

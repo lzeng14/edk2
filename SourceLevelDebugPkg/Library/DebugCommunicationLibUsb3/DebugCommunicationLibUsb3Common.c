@@ -811,6 +811,42 @@ DiscoverInitializeUsbDebugPort (
 }
 
 /**
+  Set USB3 debug instance address.
+
+**/  
+VOID
+SetUsb3DebugPortInstance (
+  IN USB3_DEBUG_PORT_HANDLE     *Instance
+  )
+{
+  EFI_PHYSICAL_ADDRESS          *AddrPtr;
+
+  AddrPtr = GetUsb3DebugPortInstanceAddrPtr ();
+  ASSERT (AddrPtr != NULL);
+  *AddrPtr = (EFI_PHYSICAL_ADDRESS) (UINTN) Instance;
+}
+
+/**
+  Return USB3 debug instance address.
+
+**/  
+USB3_DEBUG_PORT_HANDLE *
+GetUsb3DebugPortInstance (
+  VOID
+  )
+{
+  EFI_PHYSICAL_ADDRESS          *AddrPtr;
+  USB3_DEBUG_PORT_HANDLE        *Instance;
+
+  AddrPtr = GetUsb3DebugPortInstanceAddrPtr ();
+  ASSERT (AddrPtr != NULL);
+
+  Instance = (USB3_DEBUG_PORT_HANDLE *) (UINTN) *AddrPtr;
+
+  return Instance;
+}
+
+/**
   Read data from debug device and save the data in buffer.
 
   Reads NumberOfBytes data bytes from a debug device into the buffer
@@ -844,16 +880,23 @@ DebugPortReadBuffer (
     return 0;
   }
 
-  UsbDebugPortHandle = GetUsb3DebugPortInstance ();
+  if (Handle != NULL) {
+    UsbDebugPortHandle = (USB3_DEBUG_PORT_HANDLE *) Handle;
+    SetUsb3DebugPortInstance (UsbDebugPortHandle);
+  } else {
+    UsbDebugPortHandle = GetUsb3DebugPortInstance ();
+  }
   if (UsbDebugPortHandle == NULL) {
     return 0;
   }
 
-  if (UsbDebugPortHandle->Initialized != USB3DBG_ENABLED) {
+  if (UsbDebugPortHandle->InNotify) {
     return 0;
   }
 
-  if (UsbDebugPortHandle->InNotify) {
+  DiscoverInitializeUsbDebugPort (UsbDebugPortHandle);
+
+  if (UsbDebugPortHandle->Initialized != USB3DBG_ENABLED) {
     return 0;
   }
 
@@ -914,16 +957,23 @@ DebugPortWriteBuffer (
   Sent  = 0;
   Total = 0;
 
-  UsbDebugPortHandle = GetUsb3DebugPortInstance ();
+  if (Handle != NULL) {
+    UsbDebugPortHandle = (USB3_DEBUG_PORT_HANDLE *) Handle;
+    SetUsb3DebugPortInstance (UsbDebugPortHandle);
+  } else {
+    UsbDebugPortHandle = GetUsb3DebugPortInstance ();
+  }
   if (UsbDebugPortHandle == NULL) {
     return 0;
   }
 
-  if (UsbDebugPortHandle->Initialized != USB3DBG_ENABLED) {
+  if (UsbDebugPortHandle->InNotify) {
     return 0;
   }
 
-  if (UsbDebugPortHandle->InNotify) {
+  DiscoverInitializeUsbDebugPort (UsbDebugPortHandle);
+
+  if (UsbDebugPortHandle->Initialized != USB3DBG_ENABLED) {
     return 0;
   }
 
@@ -968,16 +1018,23 @@ DebugPortPollBuffer (
   USB3_DEBUG_PORT_HANDLE     *UsbDebugPortHandle;
   UINTN                     Length;
 
-  UsbDebugPortHandle = GetUsb3DebugPortInstance ();
+  if (Handle != NULL) {
+    UsbDebugPortHandle = (USB3_DEBUG_PORT_HANDLE *) Handle;
+    SetUsb3DebugPortInstance (UsbDebugPortHandle);
+  } else {
+    UsbDebugPortHandle = GetUsb3DebugPortInstance ();
+  }
   if (UsbDebugPortHandle == NULL) {
     return FALSE;
   }
 
-  if (UsbDebugPortHandle->Initialized != USB3DBG_ENABLED) {
+  if (UsbDebugPortHandle->InNotify) {
     return FALSE;
   }
 
-  if (UsbDebugPortHandle->InNotify) {
+  DiscoverInitializeUsbDebugPort (UsbDebugPortHandle);
+
+  if (UsbDebugPortHandle->Initialized != USB3DBG_ENABLED) {
     return FALSE;
   }
 
@@ -1043,10 +1100,21 @@ DebugPortInitialize (
 {
   USB3_DEBUG_PORT_HANDLE    *UsbDebugPortHandle;
 
+  //
+  // Validate the PCD PcdDebugPortHandleBufferSize value 
+  //
+  ASSERT (PcdGet16 (PcdDebugPortHandleBufferSize) == sizeof (USB3_DEBUG_PORT_HANDLE));
+
+  if (Function == NULL && Context != NULL) {
+    SetUsb3DebugPortInstance ((USB3_DEBUG_PORT_HANDLE *) Context);
+    return (DEBUG_PORT_HANDLE) Context;
+  }
   UsbDebugPortHandle = GetUsb3DebugPortInstance ();
   if (UsbDebugPortHandle == NULL) {
     return NULL;
   }
+
+  DiscoverInitializeUsbDebugPort (UsbDebugPortHandle);
 
   if (Function != NULL) {
     Function (Context, (DEBUG_PORT_HANDLE) UsbDebugPortHandle);

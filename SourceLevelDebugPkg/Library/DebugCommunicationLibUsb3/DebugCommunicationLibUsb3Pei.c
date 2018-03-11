@@ -45,6 +45,9 @@ Usb3IoMmuPpiNotify (
 
   Instance = GetUsb3DebugPortInstance ();
   ASSERT (Instance != NULL);
+  if (!Instance->Ready) {
+    return EFI_SUCCESS;
+  }
 
   Instance->InNotify = TRUE;
 
@@ -174,49 +177,44 @@ Usb3GetIoMmu (
 }
 
 /**
-  Return USB3 debug instance address.
+  Return USB3 debug instance address pointer.
 
 **/  
-USB3_DEBUG_PORT_HANDLE *
-GetUsb3DebugPortInstance (
+EFI_PHYSICAL_ADDRESS *
+GetUsb3DebugPortInstanceAddrPtr (
   VOID
   )
 {
   USB3_DEBUG_PORT_HANDLE        *Instance;
+  EFI_PHYSICAL_ADDRESS          *AddrPtr;
   EFI_PEI_HOB_POINTERS          Hob;
   EFI_STATUS                    Status;
 
   Hob.Raw = GetFirstGuidHob (&gUsb3DbgGuid);
   if (Hob.Raw == NULL) {
     //
-    // Save Instance into HOB
+    // Build HOB for the local instance and the buffer to save instance address pointer.
+    // Use the local instance in HOB temporarily.
     //
-    Instance = BuildGuidHob (
-                 &gUsb3DbgGuid,
-                 sizeof (USB3_DEBUG_PORT_HANDLE)
-                 );
-    ASSERT (Instance != NULL);
-    ZeroMem (Instance, sizeof (USB3_DEBUG_PORT_HANDLE));
-
+    AddrPtr = BuildGuidHob (
+                &gUsb3DbgGuid,
+                sizeof (EFI_PHYSICAL_ADDRESS) + sizeof (USB3_DEBUG_PORT_HANDLE)
+                );
+    ASSERT (AddrPtr != NULL);
+    ZeroMem (AddrPtr, sizeof (EFI_PHYSICAL_ADDRESS) + sizeof (USB3_DEBUG_PORT_HANDLE));
+    Instance = (USB3_DEBUG_PORT_HANDLE *) (AddrPtr + 1);
+    *AddrPtr = (EFI_PHYSICAL_ADDRESS) (UINTN) Instance;
     Instance->FromHob = TRUE;
     Instance->Initialized = USB3DBG_UNINITIALIZED;
+    if (Usb3GetIoMmu () == NULL) {
+      Status = PeiServicesNotifyPpi (&mUsb3IoMmuPpiNotifyDesc);
+      ASSERT_EFI_ERROR (Status);
+    }
   } else {
-    Instance = GET_GUID_HOB_DATA (Hob.Guid);
+    AddrPtr = GET_GUID_HOB_DATA (Hob.Guid);
   }
 
-  if (!Instance->InNotify) {
-    DiscoverInitializeUsbDebugPort (Instance);
-  }
-
-  if (Instance->Ready &&
-      !Instance->PpiNotifyRegistered &&
-      (Usb3GetIoMmu () == NULL)) {
-    Status = PeiServicesNotifyPpi (&mUsb3IoMmuPpiNotifyDesc);
-    ASSERT_EFI_ERROR (Status);
-    Instance->PpiNotifyRegistered = TRUE;
-  }
-
-  return Instance;
+  return AddrPtr;
 }
 
 /**
