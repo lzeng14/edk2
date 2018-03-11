@@ -87,8 +87,8 @@ XhcClearR32Bit(
 VOID
 XhcWriteDebugReg (
   IN USB3_DEBUG_PORT_HANDLE  *Handle,
-  IN UINT32                   Offset,
-  IN UINT32                   Data
+  IN UINT32                  Offset,
+  IN UINT32                  Data
   )
 {
   EFI_PHYSICAL_ADDRESS  DebugCapabilityBase;
@@ -111,7 +111,7 @@ XhcWriteDebugReg (
 UINT32
 XhcReadDebugReg (
   IN  USB3_DEBUG_PORT_HANDLE *Handle,
-  IN  UINT32                   Offset
+  IN  UINT32                 Offset
   )
 {
   UINT32                  Data;
@@ -1049,8 +1049,8 @@ DebugPortInitialize (
   }
 
   if (Function != NULL) {
-    Function (Context, UsbDebugPortHandle);
+    Function (Context, (DEBUG_PORT_HANDLE) UsbDebugPortHandle);
   }
 
-  return (DEBUG_PORT_HANDLE)(UINTN)UsbDebugPortHandle;
+  return (DEBUG_PORT_HANDLE) UsbDebugPortHandle;
 }

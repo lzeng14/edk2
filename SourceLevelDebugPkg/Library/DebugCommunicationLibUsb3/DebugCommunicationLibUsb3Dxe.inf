@@ -59,8 +59,10 @@
   gEfiSourceLevelDebugPkgTokenSpaceGuid.PcdDebugPortHandleBufferSize|250   ## SOMETIMES_CONSUMES
 
 [Protocols]
-  gEfiPciIoProtocolGuid                 ## CONSUMES
-  gEdkiiIoMmuProtocolGuid               ## CONSUMES
+   ## NOTIFY
+   ## SOMETIMES_CONSUMES
+  gEfiPciIoProtocolGuid
+  gEdkiiIoMmuProtocolGuid               ## SOMETIMES_CONSUMES
 
 [LibraryClasses]
   BaseLib
