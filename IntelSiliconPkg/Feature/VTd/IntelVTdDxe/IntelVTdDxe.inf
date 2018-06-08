@@ -60,6 +60,7 @@
   CacheMaintenanceLib
   PerformanceLib
   PrintLib
+  UefiAcpiTableLib
 
 [Guids]
   gEfiEventExitBootServicesGuid   ## CONSUMES ## Event

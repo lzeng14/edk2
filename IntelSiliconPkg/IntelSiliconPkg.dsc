@@ -58,6 +58,7 @@
 
   HobLib|MdePkg/Library/DxeHobLib/DxeHobLib.inf
   MemoryAllocationLib|MdePkg/Library/UefiMemoryAllocationLib/UefiMemoryAllocationLib.inf
+  UefiAcpiTableLib|MdePkg/Library/UefiAcpiTableLib/UefiAcpiTableLib.inf
 
 ###################################################################################################
 #
