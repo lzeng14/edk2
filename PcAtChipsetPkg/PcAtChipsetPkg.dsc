@@ -47,6 +47,7 @@
   LocalApicLib|UefiCpuPkg/Library/BaseXApicLib/BaseXApicLib.inf
   ReportStatusCodeLib|MdePkg/Library/BaseReportStatusCodeLibNull/BaseReportStatusCodeLibNull.inf
   HobLib|MdePkg/Library/DxeHobLib/DxeHobLib.inf
+  UefiAcpiTableLib|MdePkg/Library/UefiAcpiTableLib/UefiAcpiTableLib.inf
 
 [Components]
   PcAtChipsetPkg/8254TimerDxe/8254Timer.inf
