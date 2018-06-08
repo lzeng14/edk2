@@ -82,6 +82,7 @@
   PalLib|MdePkg/Library/BasePalLibNull/BasePalLibNull.inf
   CustomizedDisplayLib|MdeModulePkg/Library/CustomizedDisplayLib/CustomizedDisplayLib.inf
   FrameBufferBltLib|MdeModulePkg/Library/FrameBufferBltLib/FrameBufferBltLib.inf
+  UefiAcpiTableLib|MdePkg/Library/UefiAcpiTableLib/UefiAcpiTableLib.inf
   #
   # Misc
   #
