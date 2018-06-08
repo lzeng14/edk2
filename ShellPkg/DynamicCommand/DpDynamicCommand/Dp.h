@@ -21,7 +21,6 @@
 #include <Guid/Performance.h>
 #include <Guid/ExtendedFirmwarePerformance.h>
 #include <Guid/FirmwarePerformance.h>
-#include <Guid/Acpi.h>
 
 #include <Protocol/HiiPackageList.h>
 #include <Protocol/DevicePath.h>
@@ -42,6 +41,7 @@
 #include <Library/FileHandleLib.h>
 #include <Library/UefiHiiServicesLib.h>
 #include <Library/PerformanceLib.h>
+#include <Library/UefiAcpiTableLib.h>
 
 extern EFI_HANDLE mDpHiiHandle;
 

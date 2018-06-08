@@ -47,6 +47,7 @@
   UefiHiiServicesLib|MdeModulePkg/Library/UefiHiiServicesLib/UefiHiiServicesLib.inf
   HiiLib|MdeModulePkg/Library/UefiHiiLib/UefiHiiLib.inf
   NetLib|MdeModulePkg/Library/DxeNetLib/DxeNetLib.inf
+  UefiAcpiTableLib|MdePkg/Library/UefiAcpiTableLib/UefiAcpiTableLib.inf
 
   ShellLib|ShellPkg/Library/UefiShellLib/UefiShellLib.inf
   ShellCommandLib|ShellPkg/Library/UefiShellCommandLib/UefiShellCommandLib.inf
