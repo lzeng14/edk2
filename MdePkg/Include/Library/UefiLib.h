@@ -1595,4 +1595,21 @@ EfiOpenFileByDevicePath (
   IN     UINT64                    OpenMode,
   IN     UINT64                    Attributes
   );
+
+/**
+  This function finds ACPI table by signature.
+  It will find the table in gEfiAcpi20TableGuid system configuration table first,
+  and then gEfiAcpi10TableGuid system configuration table.
+
+  @param Signature  ACPI table signature.
+
+  @return ACPI table or NULL if not found.
+
+**/
+VOID *
+EFIAPI
+EfiFindAcpiTableBySignature (
+  IN UINT32     Signature
+  );
+
 #endif
