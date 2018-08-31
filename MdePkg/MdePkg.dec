@@ -246,6 +246,10 @@
   ##
   SafeIntLib|Include/Library/SafeIntLib.h
 
+  ##  @libraryclass  Provides help function for finding ACPI table.
+  ##
+  UefiAcpiTableLib|Include/Library/UefiAcpiTableLib.h
+
 [LibraryClasses.IA32, LibraryClasses.X64]
   ##  @libraryclass  Abstracts both S/W SMI generation and detection.
   ##
