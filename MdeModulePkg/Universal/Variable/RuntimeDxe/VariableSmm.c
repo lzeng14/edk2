@@ -842,6 +842,34 @@ SmmEndOfDxeCallback (
 }
 
 /**
+  Initializes variable write service for SMM.
+
+**/
+VOID
+VariableWriteServiceInitializeSmm (
+  VOID
+  )
+{
+  EFI_STATUS    Status;
+
+  Status = VariableWriteServiceInitialize ();
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Variable write service initialization failed. Status = %r\n", Status));
+  }
+
+  //
+  // Notify the variable wrapper driver the variable write service is ready
+  //
+  Status = gBS->InstallProtocolInterface (
+                  &mSmmVariableHandle,
+                  &gSmmVariableWriteGuid,
+                  EFI_NATIVE_INTERFACE,
+                  NULL
+                  );
+  ASSERT_EFI_ERROR (Status);
+}
+
+/**
   SMM Fault Tolerant Write protocol notification event handler.
 
   Non-Volatile variable write may needs FTW protocol to reclaim when
@@ -905,21 +933,10 @@ SmmFtwNotificationEvent (
 
   mVariableModuleGlobal->FvbInstance = FvbProtocol;
 
-  Status = VariableWriteServiceInitialize ();
-  if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Variable write service initialization failed. Status = %r\n", Status));
-  }
-
   //
-  // Notify the variable wrapper driver the variable write service is ready
+  // Initializes variable write service after FTW was ready.
   //
-  Status = gBS->InstallProtocolInterface (
-                  &mSmmVariableHandle,
-                  &gSmmVariableWriteGuid,
-                  EFI_NATIVE_INTERFACE,
-                  NULL
-                  );
-  ASSERT_EFI_ERROR (Status);
+  VariableWriteServiceInitializeSmm ();
 
   return EFI_SUCCESS;
 }
