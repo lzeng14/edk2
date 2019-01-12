@@ -533,16 +533,23 @@ VariableServiceInitialize (
                   );
   ASSERT_EFI_ERROR (Status);
 
-  //
-  // Register FtwNotificationEvent () notify function.
-  //
-  EfiCreateProtocolNotifyEvent (
-    &gEfiFaultTolerantWriteProtocolGuid,
-    TPL_CALLBACK,
-    FtwNotificationEvent,
-    (VOID *)SystemTable,
-    &mFtwRegistration
-    );
+  if (!PcdGetBool (PcdEmuVariableNvModeEnable)) {
+    //
+    // Register FtwNotificationEvent () notify function.
+    //
+    EfiCreateProtocolNotifyEvent (
+      &gEfiFaultTolerantWriteProtocolGuid,
+      TPL_CALLBACK,
+      FtwNotificationEvent,
+      (VOID *)SystemTable,
+      &mFtwRegistration
+      );
+  } else {
+    //
+    // Emulated non-volatile variable mode does not depend on FVB and FTW.
+    //
+    VariableWriteServiceInitializeDxe ();
+  }
 
   Status = gBS->CreateEventEx (
                   EVT_NOTIFY_SIGNAL,
