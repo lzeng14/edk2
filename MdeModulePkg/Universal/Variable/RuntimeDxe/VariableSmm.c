@@ -1034,17 +1034,24 @@ VariableServiceInitialize (
                     );
   ASSERT_EFI_ERROR (Status);
 
-  //
-  // Register FtwNotificationEvent () notify function.
-  //
-  Status = gSmst->SmmRegisterProtocolNotify (
-                    &gEfiSmmFaultTolerantWriteProtocolGuid,
-                    SmmFtwNotificationEvent,
-                    &SmmFtwRegistration
-                    );
-  ASSERT_EFI_ERROR (Status);
+  if (!PcdGetBool (PcdEmuVariableNvModeEnable)) {
+    //
+    // Register FtwNotificationEvent () notify function.
+    //
+    Status = gSmst->SmmRegisterProtocolNotify (
+                      &gEfiSmmFaultTolerantWriteProtocolGuid,
+                      SmmFtwNotificationEvent,
+                      &SmmFtwRegistration
+                      );
+    ASSERT_EFI_ERROR (Status);
 
-  SmmFtwNotificationEvent (NULL, NULL, NULL);
+    SmmFtwNotificationEvent (NULL, NULL, NULL);
+  } else {
+    //
+    // Emulated non-volatile variable mode does not depend on FVB and FTW.
+    //
+    VariableWriteServiceInitializeSmm ();
+  }
 
   return EFI_SUCCESS;
 }
