@@ -37,14 +37,11 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <Guid/SmmVariableCommon.h>
 #include "Variable.h"
 
-extern VARIABLE_INFO_ENTRY                           *gVariableInfo;
 EFI_HANDLE                                           mSmmVariableHandle      = NULL;
 EFI_HANDLE                                           mVariableHandle         = NULL;
 BOOLEAN                                              mAtRuntime              = FALSE;
 UINT8                                                *mVariableBufferPayload = NULL;
 UINTN                                                mVariableBufferPayloadSize;
-extern BOOLEAN                                       mEndOfDxe;
-extern VAR_CHECK_REQUEST_SOURCE                      mRequestSource;
 
 /**
   SecureBoot Hook for SetVariable.
