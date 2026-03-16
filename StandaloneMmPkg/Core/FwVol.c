@@ -62,7 +62,6 @@ MmCoreFfsFindMmDriver (
   )
 {
   EFI_STATUS                  Status;
-  EFI_STATUS                  DepexStatus;
   EFI_FFS_FILE_HEADER         *FileHeader;
   VOID                        *Pe32Data;
   UINTN                       Pe32DataSize;
@@ -221,8 +220,8 @@ MmCoreFfsFindMmDriver (
     if (!EFI_ERROR (Status)) {
       Status = FfsFindSectionData (EFI_SECTION_PE32, FileHeader, &Pe32Data, &Pe32DataSize);
       DEBUG ((DEBUG_INFO, "Find PE data - 0x%x\n", Pe32Data));
-      DepexStatus = FfsFindSectionData (EFI_SECTION_MM_DEPEX, FileHeader, &Depex, &DepexSize);
-      if (!EFI_ERROR (DepexStatus)) {
+      FfsFindSectionData (EFI_SECTION_MM_DEPEX, FileHeader, &Depex, &DepexSize);
+      if (!EFI_ERROR (Status)) {
         MmAddToDriverList (FwVolHeader, Pe32Data, Pe32DataSize, Depex, DepexSize, &FileHeader->Name);
       }
     }
