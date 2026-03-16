@@ -85,10 +85,8 @@ typedef struct {
   BOOLEAN                       After;
   EFI_GUID                      BeforeAfterGuid;
 
-  BOOLEAN                       Dependent;
   BOOLEAN                       Scheduled;
   BOOLEAN                       Initialized;
-  BOOLEAN                       DepexProtocolError;
 
   EFI_HANDLE                    ImageHandle;
   EFI_LOADED_IMAGE_PROTOCOL     LoadedImage;

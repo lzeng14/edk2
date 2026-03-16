@@ -327,7 +327,6 @@ MmPreProcessDepex (
   UINT8  *Iterator;
 
   Iterator               = DriverEntry->Depex;
-  DriverEntry->Dependent = TRUE;
 
   if (*Iterator == EFI_DEP_BEFORE) {
     DriverEntry->Before = TRUE;
@@ -343,54 +342,25 @@ MmPreProcessDepex (
 }
 
 /**
-  Read Depex and pre-process the Depex for Before and After. If Section Extraction
-  protocol returns an error via ReadSection defer the reading of the Depex.
+  Read Depex and pre-process the Depex for Before and After.
 
   @param  DriverEntry           Driver to work on.
 
-  @retval EFI_SUCCESS           Depex read and preprossesed
-  @retval EFI_PROTOCOL_ERROR    The section extraction protocol returned an error
-                                and  Depex reading needs to be retried.
-  @retval Error                 DEPEX not found.
-
 **/
-EFI_STATUS
+VOID
 MmGetDepexSectionAndPreProccess (
   IN EFI_MM_DRIVER_ENTRY  *DriverEntry
   )
 {
-  EFI_STATUS  Status;
-
   //
   // Data already read
   //
-  if (DriverEntry->Depex == NULL) {
-    Status = EFI_NOT_FOUND;
-  } else {
-    Status = EFI_SUCCESS;
-  }
-
-  if (EFI_ERROR (Status)) {
-    if (Status == EFI_PROTOCOL_ERROR) {
-      //
-      // The section extraction protocol failed so set protocol error flag
-      //
-      DriverEntry->DepexProtocolError = TRUE;
-    } else {
-      DriverEntry->Depex              = NULL;
-      DriverEntry->Dependent          = TRUE;
-      DriverEntry->DepexProtocolError = FALSE;
-    }
-  } else {
+  if (DriverEntry->Depex != NULL) {
     //
     // Set Before and After state information based on Depex
-    // Driver will be put in Dependent state
     //
     MmPreProcessDepex (DriverEntry);
-    DriverEntry->DepexProtocolError = FALSE;
   }
-
-  return Status;
 }
 
 /**
@@ -540,18 +510,9 @@ MmDispatcher (
       DriverEntry = CR (Link, EFI_MM_DRIVER_ENTRY, Link, EFI_MM_DRIVER_ENTRY_SIGNATURE);
       DEBUG ((DEBUG_INFO, "  DriverEntry (Discovered) - %g\n", &DriverEntry->FileName));
 
-      if (DriverEntry->DepexProtocolError) {
-        //
-        // If Section Extraction Protocol did not let the Depex be read before retry the read
-        //
-        Status = MmGetDepexSectionAndPreProccess (DriverEntry);
-      }
-
-      if (DriverEntry->Dependent) {
-        if (MmIsSchedulable (DriverEntry)) {
-          MmInsertOnScheduledQueueWhileProcessingBeforeAndAfter (DriverEntry);
-          ReadyToRun = TRUE;
-        }
+      if (MmIsSchedulable (DriverEntry)) {
+        MmInsertOnScheduledQueueWhileProcessingBeforeAndAfter (DriverEntry);
+        ReadyToRun = TRUE;
       }
     }
   } while (ReadyToRun);
@@ -603,7 +564,7 @@ MmInsertOnScheduledQueueWhileProcessingBeforeAndAfter (
   //
   for (Link = mDiscoveredList.ForwardLink; Link != &mDiscoveredList; Link = Link->ForwardLink) {
     DriverEntry = CR (Link, EFI_MM_DRIVER_ENTRY, Link, EFI_MM_DRIVER_ENTRY_SIGNATURE);
-    if (DriverEntry->Before && DriverEntry->Dependent && (DriverEntry != InsertedDriverEntry)) {
+    if (DriverEntry->Before && (DriverEntry != InsertedDriverEntry)) {
       DEBUG ((DEBUG_DISPATCH, "Evaluate MM DEPEX for FFS(%g)\n", &DriverEntry->FileName));
       DEBUG ((DEBUG_DISPATCH, "  BEFORE FFS(%g) = ", &DriverEntry->BeforeAfterGuid));
       if (CompareGuid (&InsertedDriverEntry->FileName, &DriverEntry->BeforeAfterGuid)) {
@@ -619,10 +580,9 @@ MmInsertOnScheduledQueueWhileProcessingBeforeAndAfter (
   }
 
   //
-  // Convert driver from Dependent to Scheduled state
+  // Convert driver to Scheduled state
   //
 
-  InsertedDriverEntry->Dependent = FALSE;
   InsertedDriverEntry->Scheduled = TRUE;
   InsertTailList (&mScheduledQueue, &InsertedDriverEntry->ScheduledLink);
 
@@ -631,7 +591,7 @@ MmInsertOnScheduledQueueWhileProcessingBeforeAndAfter (
   //
   for (Link = mDiscoveredList.ForwardLink; Link != &mDiscoveredList; Link = Link->ForwardLink) {
     DriverEntry = CR (Link, EFI_MM_DRIVER_ENTRY, Link, EFI_MM_DRIVER_ENTRY_SIGNATURE);
-    if (DriverEntry->After && DriverEntry->Dependent && (DriverEntry != InsertedDriverEntry)) {
+    if (DriverEntry->After && (DriverEntry != InsertedDriverEntry)) {
       DEBUG ((DEBUG_DISPATCH, "Evaluate MM DEPEX for FFS(%g)\n", &DriverEntry->FileName));
       DEBUG ((DEBUG_DISPATCH, "  AFTER FFS(%g) = ", &DriverEntry->BeforeAfterGuid));
       if (CompareGuid (&InsertedDriverEntry->FileName, &DriverEntry->BeforeAfterGuid)) {
@@ -833,8 +793,6 @@ MmDisplayDiscoveredNotDispatched (
 
   for (Link = mDiscoveredList.ForwardLink; Link != &mDiscoveredList; Link = Link->ForwardLink) {
     DriverEntry = CR (Link, EFI_MM_DRIVER_ENTRY, Link, EFI_MM_DRIVER_ENTRY_SIGNATURE);
-    if (DriverEntry->Dependent) {
-      DEBUG ((DEBUG_LOAD, "MM Driver %g was discovered but not loaded!!\n", &DriverEntry->FileName));
-    }
+    DEBUG ((DEBUG_LOAD, "MM Driver %g was discovered but not loaded!!\n", &DriverEntry->FileName));
   }
 }
