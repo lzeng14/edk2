@@ -219,6 +219,9 @@ SaveVolatileRegisters (
   VolatileRegisters->Cr0 = AsmReadCr0 ();
   VolatileRegisters->Cr3 = AsmReadCr3 ();
   VolatileRegisters->Cr4 = AsmReadCr4 ();
+  if (((IA32_CR4 *) &VolatileRegisters->Cr4)->Bits.OSXSAVE != 0) {
+    VolatileRegisters->Xcr0 = AsmXGetBv (0);
+  }
 
   AsmCpuid (CPUID_VERSION_INFO, NULL, NULL, NULL, &VersionInfoEdx.Uint32);
   if (VersionInfoEdx.Bits.DE != 0) {
@@ -256,6 +259,9 @@ RestoreVolatileRegisters (
   AsmWriteCr3 (VolatileRegisters->Cr3);
   AsmWriteCr4 (VolatileRegisters->Cr4);
   AsmWriteCr0 (VolatileRegisters->Cr0);
+  if (((IA32_CR4 *) &VolatileRegisters->Cr4)->Bits.OSXSAVE != 0) {
+    AsmXSetBv (0, VolatileRegisters->Xcr0);
+  }
 
   AsmCpuid (CPUID_VERSION_INFO, NULL, NULL, NULL, &VersionInfoEdx.Uint32);
   if (VersionInfoEdx.Bits.DE != 0) {

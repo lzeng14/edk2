@@ -86,6 +86,7 @@ typedef struct {
   UINTN              Cr0;
   UINTN              Cr3;
   UINTN              Cr4;
+  UINT64             Xcr0;
   UINTN              Dr0;
   UINTN              Dr1;
   UINTN              Dr2;
