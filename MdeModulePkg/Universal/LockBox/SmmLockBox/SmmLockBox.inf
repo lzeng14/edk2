@@ -29,7 +29,9 @@
 #
 
 [Sources]
-  SmmLockBox.c
+  SmmLockBoxCommon.c
+  SmmLockBoxTraditional.c
+  SmmLockBoxInternal.h
 
 [Packages]
   MdePkg/MdePkg.dec

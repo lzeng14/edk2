@@ -388,19 +388,14 @@ SmmReadyToLockEventNotify (
 }
 
 /**
-  Entry Point for LockBox SMM driver.
-
-  @param[in] ImageHandle  Image handle of this driver.
-  @param[in] SystemTable  A Pointer to the EFI System Table.
+  Common Entry Point for LockBox SMM driver.
 
   @retval EFI_SUCEESS
   @return Others          Some error occurs.
 **/
 EFI_STATUS
-EFIAPI
-SmmLockBoxEntryPoint (
-  IN EFI_HANDLE        ImageHandle,
-  IN EFI_SYSTEM_TABLE  *SystemTable
+SmmLockBoxEntryPointCommon (
+  VOID
   )
 {
   EFI_STATUS  Status;
@@ -425,18 +420,6 @@ SmmLockBoxEntryPoint (
                     SmmReadyToLockEventNotify,
                     &Registration
                     );
-  ASSERT_EFI_ERROR (Status);
-
-  //
-  // Install NULL to DXE data base as notify
-  //
-  ImageHandle = NULL;
-  Status      = gBS->InstallProtocolInterface (
-                       &ImageHandle,
-                       &gEfiLockBoxProtocolGuid,
-                       EFI_NATIVE_INTERFACE,
-                       NULL
-                       );
   ASSERT_EFI_ERROR (Status);
 
   return Status;
