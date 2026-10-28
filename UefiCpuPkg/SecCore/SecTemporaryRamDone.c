@@ -168,6 +168,7 @@ SecTemporaryRamDone (
   UINT64                  Address;
   IA32_MAP_ATTRIBUTE      MapAttribute;
   IA32_MAP_ATTRIBUTE      MapMask;
+  UINT64                  StartAddress;
 
   PageTable                   = 0;
   BufferSize                  = 0;
@@ -226,6 +227,15 @@ SecTemporaryRamDone (
     //
     ASSERT (sizeof (UINTN) == sizeof (UINT64));
 
+    if ((PcdGet8 (PcdNullPointerDetectionPropertyMask) & BIT0) != 0) {
+      //
+      // Exclude NULL pointer page.
+      //
+      StartAddress = BASE_4KB;
+    } elese {
+      StartAddress = 0;
+    }
+
     //
     // Get PagingMode & MaxAddressBits.
     //
@@ -240,7 +250,7 @@ SecTemporaryRamDone (
     Length = FixedPcdGet64 (PcdMaxMappingAddressBeforeTempRamExit);
     Length = MIN (LShiftU64 (1, MaxAddressBits), Length);
     if (Length != 0) {
-      Status = PageTableMap (&PageTable, PagingMode, 0, &BufferSize, 0, Length, &MapAttribute, &MapMask, NULL);
+      Status = PageTableMap (&PageTable, PagingMode, 0, &BufferSize, StartAddress, Length - StartAddress, &MapAttribute, &MapMask, NULL);
       ASSERT (Status == EFI_BUFFER_TOO_SMALL);
       if (Status != EFI_BUFFER_TOO_SMALL) {
         return Status;
@@ -255,7 +265,7 @@ SecTemporaryRamDone (
         return EFI_OUT_OF_RESOURCES;
       }
 
-      Status = PageTableMap (&PageTable, PagingMode, (VOID *)(UINTN)Buffer, &BufferSize, 0, Length, &MapAttribute, &MapMask, NULL);
+      Status = PageTableMap (&PageTable, PagingMode, (VOID *)(UINTN)Buffer, &BufferSize, StartAddress, Length - StartAddress, &MapAttribute, &MapMask, NULL);
       ASSERT (BufferSize == 0);
       if (EFI_ERROR (Status)) {
         DEBUG ((DEBUG_ERROR, "SecTemporaryRamDone: Failed to create page table in physical memory before Temp Ram Exit: %r.\n", Status));

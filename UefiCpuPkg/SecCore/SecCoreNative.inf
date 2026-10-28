@@ -83,6 +83,7 @@
   gUefiCpuPkgTokenSpaceGuid.PcdPeiTemporaryRamStackSize  ## CONSUMES
   gUefiCpuPkgTokenSpaceGuid.PcdMaxMappingAddressBeforeTempRamExit  ## CONSUMES
   gEfiMdeModulePkgTokenSpaceGuid.PcdMigrateTemporaryRamFirmwareVolumes  ## CONSUMES
+  gEfiMdeModulePkgTokenSpaceGuid.PcdNullPointerDetectionPropertyMask    ## CONSUMES
 
 [UserExtensions.TianoCore."ExtraFiles"]
   SecCoreExtra.uni
